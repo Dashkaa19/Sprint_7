@@ -2,6 +2,7 @@ import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.Response;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import ru.services.practicum.Courier;
@@ -12,6 +13,7 @@ public class CourierLoginTest {
     private String login;
     private String password;
     private String firstName;
+    private Integer id;
 
     @Before
     public void setUp() {
@@ -20,11 +22,21 @@ public class CourierLoginTest {
         this.firstName = RandomStringUtils.randomAlphabetic(2, 18);
     }
 
+    @After
+    public void tearDown() {
+        if (id != null) {
+            Response rs = courierClient.deleteCourierById(id);
+            rs.then().log().all().assertThat().statusCode(200);
+        }
+    }
+
     @Test
     @DisplayName("Курьер авторизирован")
     public void checkCreatingCourierLoginTest() {
-        Response postRequestCourierLogin = courierClient.loginCourier(new Courier("RandomName", "7880", "raandom name"));
+        courierClient.createCourier(new Courier(login, password, firstName));
+        Response postRequestCourierLogin = courierClient.loginCourier(new Courier(login, password, firstName));
         postRequestCourierLogin.then().log().all().assertThat().statusCode(200).and().body("id", Matchers.notNullValue());
+        id = postRequestCourierLogin.then().extract().path("id");
     }
 
     @Test
@@ -62,4 +74,3 @@ public class CourierLoginTest {
         postRequestCourierLogin.then().log().all().assertThat().statusCode(404).and().body("message", Matchers.is("Учетная запись не найдена"));
     }
 }
-
